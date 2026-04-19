@@ -13,8 +13,8 @@ const notoSansJp = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: "代理購入 請求・領収作成",
-  description: "代理購入の請求書・領収書を作成し、共有できるアプリ"
+  title: "Payment Log | 支払いログ",
+  description: "お支払いをログで残すサービスです。"
 };
 
 export default function RootLayout({
