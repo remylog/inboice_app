@@ -18,7 +18,9 @@ RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/data ./data
+
+# Create data directory for documents
+RUN mkdir -p /app/data && chown -R nextjs:nextjs /app/data
 
 USER nextjs
 EXPOSE 3000
