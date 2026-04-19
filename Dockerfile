@@ -14,15 +14,14 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
+RUN apk add --no-cache su-exec
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Create data directory for documents
-RUN mkdir -p /app/data && chown -R nextjs:nextjs /app/data
-
-USER nextjs
+# Ensure writable mounted data directory, then drop privileges for app process
+RUN mkdir -p /app/data
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "mkdir -p /app/data && chown -R nextjs:nextjs /app/data && su-exec nextjs node server.js"]
