@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import {
   deleteDocumentById,
   findDocumentById,
-  updateDocumentStatus
+  updateDocumentStatus,
+  updateDocumentPaidDate
 } from "@/lib/storage";
 import { DocumentStatus } from "@/types/document";
 
@@ -31,28 +32,46 @@ export async function PATCH(
   const { id } = await context.params;
 
   try {
-    const body = (await request.json()) as { status?: string };
+    const body = (await request.json()) as { status?: string; paidDate?: string };
 
-    if (!body.status || !isDocumentStatus(body.status)) {
+    if (body.status) {
+      if (!isDocumentStatus(body.status)) {
+        return NextResponse.json(
+          { message: "status が不正です" },
+          { status: 400 }
+        );
+      }
+
+      const updated = await updateDocumentStatus(id, body.status);
+
+      if (!updated) {
+        return NextResponse.json(
+          { message: "ドキュメントが見つかりません" },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json(updated);
+    } else if (body.paidDate !== undefined) {
+      const updated = await updateDocumentPaidDate(id, body.paidDate);
+
+      if (!updated) {
+        return NextResponse.json(
+          { message: "ドキュメントが見つかりません" },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json(updated);
+    } else {
       return NextResponse.json(
-        { message: "status が不正です" },
+        { message: "status または paidDate を指定してください" },
         { status: 400 }
       );
     }
-
-    const updated = await updateDocumentStatus(id, body.status);
-
-    if (!updated) {
-      return NextResponse.json(
-        { message: "ドキュメントが見つかりません" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(updated);
   } catch {
     return NextResponse.json(
-      { message: "ステータス更新中にエラーが発生しました" },
+      { message: "ドキュメント更新中にエラーが発生しました" },
       { status: 500 }
     );
   }

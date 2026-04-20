@@ -34,9 +34,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "type が不正です" }, { status: 400 });
     }
 
-    if (!body.requesterName || !body.paidAt || !body.status) {
+    if (!body.requesterName || !body.dueDate || !body.status) {
       return NextResponse.json(
-        { message: "requesterName/paidAt/status は必須です" },
+        { message: "requesterName/dueDate/status は必須です" },
         { status: 400 }
       );
     }
@@ -73,7 +73,8 @@ export async function POST(request: Request) {
         name: item.name,
         amount: Number(item.amount)
       })),
-      paidAt: body.paidAt,
+      dueDate: body.dueDate,
+      paidDate: body.paidDate,
       status: body.status,
       notes: body.notes?.trim() || undefined
     });

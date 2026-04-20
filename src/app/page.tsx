@@ -28,10 +28,10 @@ export default function HomePage() {
             <div className="landing-mock-card">
               <div className="landing-mock-row">
                 <span>ご請求先</span>
-                <strong>サンプル様</strong>
+                <strong>サンプル 様</strong>
               </div>
               <div className="landing-mock-row">
-                <span>支払日</span>
+                <span>支払期限</span>
                 <strong>YYYY-MM-DD</strong>
               </div>
               <div className="landing-mock-row">

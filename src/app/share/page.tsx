@@ -34,7 +34,7 @@ function formatRequesterName(name: string) {
     return "";
   }
 
-  return /(様|さま)$/.test(trimmed) ? trimmed : `${trimmed}様`;
+  return /(様|さま)$/.test(trimmed) ? trimmed : `${trimmed} 様`;
 }
 
 export default async function SharePage({ searchParams }: SharePageProps) {
@@ -54,6 +54,9 @@ export default async function SharePage({ searchParams }: SharePageProps) {
     ? document.items
     : [{ name: document.title, amount: document.amount }];
   const statusText = normalizeStatus(document.status);
+  
+  const displayDate = document.status === "支払い済み" ? document.paidDate || document.dueDate : document.dueDate;
+  const displayLabel = document.status === "支払い済み" ? "支払完了日" : "支払期限";
 
   return (
     <main className="receipt-stage">
@@ -78,8 +81,8 @@ export default async function SharePage({ searchParams }: SharePageProps) {
             </div>
 
             <div className="receipt-partner">
-              <span>支払日</span>
-              <strong>{document.paidAt}</strong>
+              <span>{displayLabel}</span>
+              <strong>{displayDate}</strong>
             </div>
 
             <div className="receipt-partner">

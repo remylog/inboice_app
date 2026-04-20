@@ -50,7 +50,8 @@ export async function createDocument(
     buyerName: input.buyerName,
     items: input.items,
     amount: totalAmount,
-    paidAt: input.paidAt,
+    dueDate: input.dueDate,
+    paidDate: input.paidDate,
     status: input.status,
     transferInfo: input.transferInfo,
     notes: input.notes,
@@ -93,6 +94,22 @@ export async function updateDocumentStatus(
   }
 
   target.status = status;
+  await writeAllDocuments(documents);
+  return target;
+}
+
+export async function updateDocumentPaidDate(
+  id: string,
+  paidDate: string
+): Promise<ExpenseDocument | null> {
+  const documents = await readAllDocuments();
+  const target = documents.find((doc) => doc.id === id);
+
+  if (!target) {
+    return null;
+  }
+
+  target.paidDate = paidDate;
   await writeAllDocuments(documents);
   return target;
 }

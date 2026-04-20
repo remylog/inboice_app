@@ -6,7 +6,8 @@ import { DocumentStatus, ExpenseDocument } from "@/types/document";
 type FormState = {
   requesterName: string;
   title: string;
-  paidAt: string;
+  dueDate: string;
+  paidDate: string;
   status: "未払い" | "支払い済み";
   notes: string;
   items: Array<{
@@ -19,7 +20,8 @@ type FormState = {
 const defaultForm: FormState = {
   requesterName: "",
   title: "",
-  paidAt: new Date().toISOString().slice(0, 10),
+  dueDate: new Date().toISOString().slice(0, 10),
+  paidDate: new Date().toISOString().slice(0, 10),
   status: "未払い",
   notes: "",
   items: [{ id: crypto.randomUUID(), name: "", amount: 0 }]
@@ -31,7 +33,7 @@ function formatRequesterName(name: string) {
     return "";
   }
 
-  return /(様|さま)$/.test(trimmed) ? trimmed : `${trimmed}様`;
+  return /(様|さま)$/.test(trimmed) ? trimmed : `${trimmed} 様`;
 }
 
 export default function AdminPage() {
@@ -45,6 +47,8 @@ export default function AdminPage() {
   const [listInfo, setListInfo] = useState("");
   const [updatingId, setUpdatingId] = useState("");
   const [deletingId, setDeletingId] = useState("");
+  const [editingPaidDateId, setEditingPaidDateId] = useState("");
+  const [editingPaidDateValue, setEditingPaidDateValue] = useState("");
 
   const shareUrl = useMemo(() => {
     if (!created) {
@@ -200,6 +204,41 @@ export default function AdminPage() {
     }
   }
 
+  async function updatePaidDate(id: string, paidDate: string) {
+    setUpdatingId(id);
+    setListError("");
+    setListInfo("");
+
+    try {
+      const response = await fetch(`/api/documents/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ paidDate })
+      });
+
+      const payload = (await response.json()) as ExpenseDocument | { message: string };
+
+      if (!response.ok) {
+        throw new Error("message" in payload ? payload.message : "更新に失敗しました");
+      }
+
+      setDocuments((prev) =>
+        prev.map((doc) => (doc.id === id ? (payload as ExpenseDocument) : doc))
+      );
+      setEditingPaidDateId("");
+      setEditingPaidDateValue("");
+      setListInfo("支払完了日を更新しました");
+    } catch (updateError) {
+      setListError(
+        updateError instanceof Error ? updateError.message : "更新に失敗しました"
+      );
+    } finally {
+      setUpdatingId("");
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -217,7 +256,8 @@ export default function AdminPage() {
           type: "invoice",
           title: form.title.trim(),
           requesterName: form.requesterName.trim(),
-          paidAt: form.paidAt,
+          dueDate: form.dueDate,
+          paidDate: form.status === "支払い済み" ? form.paidDate : undefined,
           status: form.status,
           notes: form.notes.trim(),
           items: form.items
@@ -267,16 +307,29 @@ export default function AdminPage() {
           </label>
 
           <label>
-            支払日
+            支払い期限
             <input
               required
               type="date"
-              value={form.paidAt}
+              value={form.dueDate}
               onChange={(event) =>
-                setForm((prev) => ({ ...prev, paidAt: event.target.value }))
+                setForm((prev) => ({ ...prev, dueDate: event.target.value }))
               }
             />
           </label>
+
+          {form.status === "支払い済み" && (
+            <label>
+              支払い完了日
+              <input
+                type="date"
+                value={form.paidDate}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, paidDate: event.target.value }))
+                }
+              />
+            </label>
+          )}
 
           <label>
             ステータス
@@ -391,7 +444,7 @@ export default function AdminPage() {
                   <tr>
                     <th>ご請求先</th>
                     <th>合計金額</th>
-                    <th>支払日</th>
+                    <th>支払期限 / 完了日</th>
                     <th>ステータス</th>
                     <th>操作</th>
                   </tr>
@@ -407,7 +460,16 @@ export default function AdminPage() {
                           maximumFractionDigits: 0
                         }).format(doc.amount)}
                       </td>
-                      <td>{doc.paidAt}</td>
+                      <td>
+                        {doc.status === "支払い済み" ? (
+                          <>
+                            <div>{doc.dueDate}</div>
+                            <div className="text-secondary">完了: {doc.paidDate || "-"}</div>
+                          </>
+                        ) : (
+                          doc.dueDate
+                        )}
+                      </td>
                       <td className="status-cell">
                         <select
                           value={doc.status || "未払い"}
@@ -422,22 +484,68 @@ export default function AdminPage() {
                       </td>
                       <td className="actions-cell">
                         <div className="row-actions">
-                          <button
-                            type="button"
-                            className="button ghost small-button"
-                            disabled={deletingId === doc.id || updatingId === doc.id}
-                            onClick={() => void copyRowShareUrl(doc)}
-                          >
-                            リンクコピー
-                          </button>
-                          <button
-                            type="button"
-                            className="button ghost small-button"
-                            disabled={deletingId === doc.id || updatingId === doc.id}
-                            onClick={() => void deleteDocument(doc.id)}
-                          >
-                            {deletingId === doc.id ? "削除中..." : "削除"}
-                          </button>
+                          {doc.status === "支払い済み" && editingPaidDateId === doc.id ? (
+                            <div className="date-input-row">
+                              <input
+                                type="date"
+                                value={editingPaidDateValue}
+                                onChange={(event) =>
+                                  setEditingPaidDateValue(event.target.value)
+                                }
+                              />
+                              <button
+                                type="button"
+                                className="button ghost small-button"
+                                disabled={updatingId === doc.id}
+                                onClick={() => void updatePaidDate(doc.id, editingPaidDateValue)}
+                              >
+                                保存
+                              </button>
+                              <button
+                                type="button"
+                                className="button ghost small-button"
+                                disabled={updatingId === doc.id}
+                                onClick={() => {
+                                  setEditingPaidDateId("");
+                                  setEditingPaidDateValue("");
+                                }}
+                              >
+                                キャンセル
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              {doc.status === "支払い済み" && (
+                                <button
+                                  type="button"
+                                  className="button ghost small-button"
+                                  disabled={deletingId === doc.id || updatingId === doc.id}
+                                  onClick={() => {
+                                    setEditingPaidDateId(doc.id);
+                                    setEditingPaidDateValue(doc.paidDate || doc.dueDate);
+                                  }}
+                                >
+                                  完了日編集
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="button ghost small-button"
+                                disabled={deletingId === doc.id || updatingId === doc.id}
+                                onClick={() => void copyRowShareUrl(doc)}
+                              >
+                                リンクコピー
+                              </button>
+                              <button
+                                type="button"
+                                className="button ghost small-button"
+                                disabled={deletingId === doc.id || updatingId === doc.id}
+                                onClick={() => void deleteDocument(doc.id)}
+                              >
+                                {deletingId === doc.id ? "削除中..." : "削除"}
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

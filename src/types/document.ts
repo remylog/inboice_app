@@ -15,7 +15,8 @@ export type ExpenseDocument = {
   buyerName?: string;
   items: DocumentItem[];
   amount: number;
-  paidAt: string;
+  dueDate: string;
+  paidDate?: string;
   status?: DocumentStatus;
   transferInfo?: {
     bankName: string;
@@ -34,7 +35,8 @@ export type CreateExpenseDocumentInput = {
   buyerName?: string;
   title?: string;
   items: DocumentItem[];
-  paidAt: string;
+  dueDate: string;
+  paidDate?: string;
   status: DocumentStatus;
   transferInfo?: {
     bankName: string;
